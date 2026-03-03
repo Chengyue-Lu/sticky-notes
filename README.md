@@ -3,43 +3,46 @@
 [Chinese](./README_CN.md)
 
 StickyDesk is a compact desktop notes panel built with Electron, React, and Vite.
-The current version focuses on a narrow frameless window, quick note browsing, desktop-friendly controls, and a lightweight activity tracker.
+It is designed as a narrow side panel for quick capture, quick review, and lightweight focus support on the desktop.
 
-> Status: active prototype. The UI shell is usable, but note CRUD and long-term data storage are still in progress.
+> Status: `v0.1` prototype release. The core shell is usable and local note persistence is in place, but tasks and advanced settings are still planned work.
 
 ## Current Features
 
-### Notes Board
+### Notes
 
 - Narrow sticky-panel layout optimized for desktop side placement
-- Pinned and regular note sections
-- Fast search across title, content, category, and tags
-- Compact note rows designed for quick scanning
-- Empty-state handling when filters return no results
+- Local JSON note persistence (`data/notes.json`)
+- Create new notes from the inline composer
+- Single-note expand / collapse interaction
+- Inline editing for title, content, and tags
+- Delete notes from the expanded state
+- Pin toggle for moving notes between pinned and regular sections
+- Fast search across title, content, and tags
 
 ### Activity Tracking
 
 - Tracks active time using Electron `powerMonitor.getSystemIdleTime()`
-- Shows current session status (`Active now`, `Idle`, or tracking unavailable)
-- Tracks both `Today` and `Total` active time
-- Persists activity counters in `localStorage`
+- Shows `Today` and `Total` active time
+- Tracks current state (`Active now`, `Idle`, or unavailable)
 - Reset actions for daily and total counters
+- Activity counters are persisted in `localStorage`
 
-### Window Controls
+### Window Shell
 
-- Frameless translucent window with custom in-app controls
-- Custom floating controls for settings, minimize, and close
+- Frameless translucent desktop panel
+- Floating custom controls for settings, minimize, and close
 - Built-in window size presets
-- `Always on Top` toggle from the settings popover
+- `Always on Top` toggle
 - Hidden native scrollbars for a cleaner compact layout
+- Windows portable packaging output is supported
 
 ## Current Limitations
 
-- Notes are still loaded from local seed data
-- Note create / edit / delete is not implemented yet
-- Tag management UI is not implemented yet
-- Tasks, drag-and-drop sorting, and context menus are not implemented yet
-- The settings popover includes placeholders for theme and sort preferences
+- The settings popover still contains placeholder options for theme and sort rules
+- There is no countdown task system yet
+- There is no system tray integration yet
+- The portable single-file build can feel slower to launch or close because it extracts and cleans up temporary runtime files
 
 ## Tech Stack
 
@@ -47,17 +50,18 @@ The current version focuses on a narrow frameless window, quick note browsing, d
 - React 19
 - TypeScript
 - Vite
-- Storage: local JSON first, SQLite only if the app later needs heavier querying or indexing
+- Storage: local JSON first; SQLite remains an optional future upgrade if the app later needs heavier querying or indexing
 
 ## Project Structure
 
-- `main.cjs`: Electron main process and window IPC
+- `main.cjs`: Electron main process, local JSON storage, and IPC handlers
 - `preload.cjs`: secure renderer bridge
 - `src/pages/NotesBoard.tsx`: main screen composition
-- `src/components/notes/`: note board UI pieces and window controls
+- `src/components/notes/`: note board UI, composer, cards, and window controls
 - `src/hooks/useActiveTime.ts`: active time tracking logic
-- `src/hooks/useNotes.ts`: note loading and filtering
-- `src/data/`: seed note data
+- `src/hooks/useNotes.ts`: note loading, filtering, and note mutations
+- `src/data/notes.ts`: renderer-side note I/O adapter
+- `data/notes.json`: runtime note storage file (created automatically when missing)
 
 ## Development
 
@@ -80,13 +84,26 @@ npm run typecheck
 npm run build
 ```
 
-## Near-Term Roadmap
+### Package (Windows Portable)
 
-- [ ] Move notes and settings from seed data to local JSON persistence
-- [ ] Add note creation, expansion, inline editing, and deletion
-- [ ] Add context menu actions for quick note operations
-- [ ] Add quick countdown tasks for short focus sessions
-- [ ] Turn theme, sorting, and window behavior into real settings
+```bash
+npm run package:win
+```
+
+## Roadmap
+
+### Next (`v0.2`)
+
+- [ ] Improve startup and shutdown speed, especially for portable builds
+- [ ] Reduce the rendering cost of the translucent shell where possible
+- [ ] Add short countdown / focus timers
+- [ ] Turn theme and sort placeholders into real settings
+
+### Later
+
+- [ ] Add tray integration and background controls
+- [ ] Add import / export for notes and settings
+- [ ] Revisit SQLite only if local JSON becomes a limitation
 
 ## License
 
