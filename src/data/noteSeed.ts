@@ -1,4 +1,13 @@
 import type { Note } from '../types/note';
+import { formatNoteTimestampForStorage } from '../lib/noteTime';
+
+function createSeedTimestamp(daysAgo: number, hours: number, minutes: number): string {
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  date.setDate(date.getDate() - daysAgo);
+
+  return formatNoteTimestampForStorage(date);
+}
 
 export const noteSeed: Note[] = [
   {
@@ -8,7 +17,7 @@ export const noteSeed: Note[] = [
       'Keep the first iteration focused on note CRUD, tags, and a simple search flow. Delay tasks and floating widgets until the base note experience is stable.',
     tags: ['mvp', 'notes', 'setup'],
     category: 'Planning',
-    updatedAt: 'Today 09:30',
+    updatedAt: createSeedTimestamp(0, 9, 30),
     pinned: true,
   },
   {
@@ -18,7 +27,7 @@ export const noteSeed: Note[] = [
       'Review the React shell code, list the next files to create, and verify the app still starts after each small UI change.',
     tags: ['study', 'review'],
     category: 'Today',
-    updatedAt: 'Today 11:10',
+    updatedAt: createSeedTimestamp(0, 11, 10),
   },
   {
     id: 'note-3',
@@ -27,6 +36,6 @@ export const noteSeed: Note[] = [
       'Use static demo data now. Move to local JSON or localStorage before introducing SQLite or full-text search.',
     tags: ['storage', 'future'],
     category: 'Architecture',
-    updatedAt: 'Yesterday 18:40',
+    updatedAt: createSeedTimestamp(1, 18, 40),
   },
 ];
