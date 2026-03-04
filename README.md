@@ -1,6 +1,7 @@
 # StickyDesk
 
 [Chinese](./README_CN.md)
+[Quick Start (CN)](./使用说明.md)
 
 StickyDesk is a compact desktop side panel for notes, countdown tasks, and quick focus timing.  
 It runs as a narrow frameless Electron window and stores runtime data in a local `data/` folder beside the app.
