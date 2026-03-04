@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getIdleSeconds, supportsIdleTracking } from '../lib/desktopApi';
 
 type ActivitySnapshot = {
   dayKey: string;
@@ -104,19 +105,12 @@ export function useActiveTime(): UseActiveTimeResult {
   const [snapshot, setSnapshot] = useState<ActivitySnapshot>(() => readSnapshot());
   const [inactiveSeconds, setInactiveSeconds] = useState<number | null>(null);
   const [isIdle, setIsIdle] = useState(false);
-  const [isTrackingAvailable, setIsTrackingAvailable] = useState(
-    () => typeof window !== 'undefined' && typeof window.stickyDesk?.getIdleSeconds === 'function',
+  const [isTrackingAvailable, setIsTrackingAvailable] = useState(() =>
+    supportsIdleTracking(),
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      setIsTrackingAvailable(false);
-      return;
-    }
-
-    const getIdleSeconds = window.stickyDesk?.getIdleSeconds;
-
-    if (typeof getIdleSeconds !== 'function') {
+    if (!supportsIdleTracking()) {
       setIsTrackingAvailable(false);
       return;
     }

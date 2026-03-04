@@ -1,4 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  closeWindow,
+  minimizeWindow,
+  setWindowSize,
+} from '../../lib/desktopApi';
 import type {
   AppSettings,
   NoteSortDirection,
@@ -179,10 +184,6 @@ function WindowOverlayControls({
   };
 
   const handleApplyWindowSize = async () => {
-    if (typeof window.stickyDesk?.setWindowSize !== 'function') {
-      return;
-    }
-
     const requestedWidth = normalizeDimensionInput(
       windowWidthInput,
       MIN_WINDOW_WIDTH,
@@ -193,15 +194,13 @@ function WindowOverlayControls({
       MIN_WINDOW_HEIGHT,
       MAX_WINDOW_HEIGHT,
     );
-    const appliedBounds = await window.stickyDesk.setWindowSize(
-      requestedWidth,
-      requestedHeight,
-    );
-
-    if (appliedBounds) {
+    try {
+      const appliedBounds = await setWindowSize(requestedWidth, requestedHeight);
       setWindowWidthInput(String(appliedBounds.width));
       setWindowHeightInput(String(appliedBounds.height));
       return;
+    } catch {
+      // Keep the local input values when the desktop command is unavailable.
     }
 
     setWindowWidthInput(String(requestedWidth));
@@ -224,11 +223,11 @@ function WindowOverlayControls({
   };
 
   const handleMinimize = () => {
-    window.stickyDesk?.minimizeWindow?.();
+    void minimizeWindow().catch(() => {});
   };
 
   const handleClose = () => {
-    window.stickyDesk?.closeWindow?.();
+    void closeWindow().catch(() => {});
   };
 
   return (

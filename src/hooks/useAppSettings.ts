@@ -1,4 +1,13 @@
 import { useEffect, useState } from 'react';
+import {
+  getSettings as loadPersistedSettings,
+  setAlwaysOnTop,
+  setAutoFadeWhenInactive,
+  setNoteSort,
+  setShellOpacity,
+  setTheme,
+  setUiScale,
+} from '../lib/desktopApi';
 import type {
   AppSettings,
   NoteSortDirection,
@@ -119,19 +128,8 @@ export function useAppSettings(): UseAppSettingsResult {
     applyShellOpacity(DEFAULT_SETTINGS.shellOpacity);
 
     const loadSettings = async () => {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
-      if (typeof window.stickyDesk?.getSettings !== 'function') {
-        applyTheme(DEFAULT_SETTINGS.themeId);
-        applyUiScale(DEFAULT_SETTINGS.uiScale);
-        applyShellOpacity(DEFAULT_SETTINGS.shellOpacity);
-        return;
-      }
-
       try {
-        const nextSettings = normalizeSettings(await window.stickyDesk.getSettings());
+        const nextSettings = normalizeSettings(await loadPersistedSettings());
 
         setSettings(nextSettings);
         applyTheme(nextSettings.themeId);
@@ -148,34 +146,20 @@ export function useAppSettings(): UseAppSettingsResult {
   }, []);
 
   const updateTheme = async (themeId: ThemeId) => {
-    if (typeof window.stickyDesk?.setTheme !== 'function') {
-      setSettings((currentSettings) => ({
-        ...currentSettings,
-        themeId,
-      }));
-      applyTheme(themeId);
-      return;
-    }
-
-    try {
-      const nextSettings = normalizeSettings(
-        await window.stickyDesk.setTheme(themeId),
-      );
-
-      if (nextSettings) {
-        setSettings(nextSettings);
-        applyTheme(nextSettings.themeId);
-        return;
-      }
-    } catch {
-      // Fall back to local-only state so the UI still responds during bridge failures.
-    }
-
     setSettings((currentSettings) => ({
       ...currentSettings,
       themeId,
     }));
     applyTheme(themeId);
+
+    try {
+      const nextSettings = normalizeSettings(await setTheme(themeId));
+      setSettings(nextSettings);
+      applyTheme(nextSettings.themeId);
+      return;
+    } catch {
+      // Fall back to local-only state so the UI still responds during command failures.
+    }
   };
 
   const updateUiScale = async (value: number) => {
@@ -187,29 +171,14 @@ export function useAppSettings(): UseAppSettingsResult {
     }));
     applyUiScale(nextValue);
 
-    if (typeof window.stickyDesk?.setUiScale !== 'function') {
-      return;
-    }
-
     try {
-      const nextSettings = normalizeSettings(
-        await window.stickyDesk.setUiScale(nextValue),
-      );
-
-      if (nextSettings) {
-        setSettings(nextSettings);
-        applyUiScale(nextSettings.uiScale);
-        return;
-      }
+      const nextSettings = normalizeSettings(await setUiScale(nextValue));
+      setSettings(nextSettings);
+      applyUiScale(nextSettings.uiScale);
+      return;
     } catch {
       // Fall through to local state.
     }
-
-    setSettings((currentSettings) => ({
-      ...currentSettings,
-      uiScale: nextValue,
-    }));
-    applyUiScale(nextValue);
   };
 
   const updateShellOpacity = async (value: number) => {
@@ -221,42 +190,24 @@ export function useAppSettings(): UseAppSettingsResult {
     }));
     applyShellOpacity(nextValue);
 
-    if (typeof window.stickyDesk?.setShellOpacity !== 'function') {
-      return;
-    }
-
     try {
-      const nextSettings = normalizeSettings(
-        await window.stickyDesk.setShellOpacity(nextValue),
-      );
-
-      if (nextSettings) {
-        setSettings(nextSettings);
-        applyShellOpacity(nextSettings.shellOpacity);
-        return;
-      }
+      const nextSettings = normalizeSettings(await setShellOpacity(nextValue));
+      setSettings(nextSettings);
+      applyShellOpacity(nextSettings.shellOpacity);
+      return;
     } catch {
       // Fall through to local state.
     }
-
-    setSettings((currentSettings) => ({
-      ...currentSettings,
-      shellOpacity: nextValue,
-    }));
-    applyShellOpacity(nextValue);
   };
 
   const updateAlwaysOnTop = async (value: boolean): Promise<boolean> => {
-    if (typeof window.stickyDesk?.setAlwaysOnTop !== 'function') {
-      setSettings((currentSettings) => ({
-        ...currentSettings,
-        alwaysOnTop: value,
-      }));
-      return value;
-    }
+    setSettings((currentSettings) => ({
+      ...currentSettings,
+      alwaysOnTop: value,
+    }));
 
     try {
-      const appliedValue = await window.stickyDesk.setAlwaysOnTop(value);
+      const appliedValue = await setAlwaysOnTop(value);
 
       setSettings((currentSettings) => ({
         ...currentSettings,
@@ -279,58 +230,31 @@ export function useAppSettings(): UseAppSettingsResult {
       autoFadeWhenInactive: value,
     }));
 
-    if (typeof window.stickyDesk?.setAutoFadeWhenInactive !== 'function') {
-      return;
-    }
-
     try {
-      const nextSettings = normalizeSettings(
-        await window.stickyDesk.setAutoFadeWhenInactive(value),
-      );
-
-      if (nextSettings) {
-        setSettings(nextSettings);
-        return;
-      }
+      const nextSettings = normalizeSettings(await setAutoFadeWhenInactive(value));
+      setSettings(nextSettings);
+      return;
     } catch {
       // Fall through to local state.
     }
-
-    setSettings((currentSettings) => ({
-      ...currentSettings,
-      autoFadeWhenInactive: value,
-    }));
   };
 
   const updateNoteSort = async (
     field: NoteSortField,
     direction: NoteSortDirection,
   ) => {
-    if (typeof window.stickyDesk?.setNoteSort !== 'function') {
-      setSettings((currentSettings) => ({
-        ...currentSettings,
-        noteSort: { field, direction },
-      }));
-      return;
-    }
-
-    try {
-      const nextSettings = normalizeSettings(
-        await window.stickyDesk.setNoteSort(field, direction),
-      );
-
-      if (nextSettings) {
-        setSettings(nextSettings);
-        return;
-      }
-    } catch {
-      // Fall through to local state.
-    }
-
     setSettings((currentSettings) => ({
       ...currentSettings,
       noteSort: { field, direction },
     }));
+
+    try {
+      const nextSettings = normalizeSettings(await setNoteSort(field, direction));
+      setSettings(nextSettings);
+      return;
+    } catch {
+      // Fall through to local state.
+    }
   };
 
   return {

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-const REMINDER_DURATION_MS = 60_000;
 const TIMER_TICK_MS = 1_000;
 
-export type FocusTimerPhase = 'idle' | 'running' | 'alerting' | 'finished';
+export type FocusTimerPhase = 'idle' | 'running' | 'alerting';
 
 export type FocusTimerSession = {
   content: string;
@@ -16,7 +15,6 @@ type RunningTimerSession = {
   content: string;
   durationSeconds: number;
   endsAt: number;
-  alertEndsAt: number | null;
   remainingSeconds: number;
   phase: Exclude<FocusTimerPhase, 'idle'>;
 };
@@ -56,11 +54,7 @@ export function useFocusTimer(): UseFocusTimerResult {
   const previousPhaseRef = useRef<FocusTimerPhase>('idle');
 
   useEffect(() => {
-    if (!activeSession) {
-      return;
-    }
-
-    if (activeSession.phase === 'finished') {
+    if (!activeSession || activeSession.phase !== 'running') {
       return;
     }
 
@@ -87,21 +81,7 @@ export function useFocusTimer(): UseFocusTimerResult {
             ...currentSession,
             remainingSeconds: 0,
             phase: 'alerting',
-            alertEndsAt: Date.now() + REMINDER_DURATION_MS,
           };
-        }
-
-        if (
-          currentSession.phase === 'alerting' &&
-          currentSession.alertEndsAt !== null
-        ) {
-          if (Date.now() >= currentSession.alertEndsAt) {
-            return {
-              ...currentSession,
-              phase: 'finished',
-              alertEndsAt: null,
-            };
-          }
         }
 
         return currentSession;
@@ -137,7 +117,6 @@ export function useFocusTimer(): UseFocusTimerResult {
       content: cleanContent,
       durationSeconds: safeDurationSeconds,
       endsAt: Date.now() + safeDurationSeconds * 1000,
-      alertEndsAt: null,
       remainingSeconds: safeDurationSeconds,
       phase: 'running',
     });

@@ -1,24 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ command }) => ({
-  // Electron loads the production build through file://, so packaged assets must stay relative.
-  base: command === 'build' ? './' : '/',
+// https://vite.dev/config/
+export default defineConfig({
   plugins: [react()],
-  build: {
-    // The renderer is still small, so keeping one CSS file and one JS bundle reduces startup file lookups.
-    cssCodeSplit: false,
-    modulePreload: false,
-    rollupOptions: {
-      output: {
-        inlineDynamicImports: true,
-        manualChunks: undefined,
-      },
-    },
-  },
   server: {
     host: '127.0.0.1',
-    port: 5173,
+    port: 1420,
     strictPort: true,
   },
-}));
+});

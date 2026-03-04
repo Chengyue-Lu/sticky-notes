@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FocusTimerSession } from '../../hooks/useFocusTimer';
+import { triggerFocusReminder } from '../../lib/desktopApi';
 
 type NotesFloatingStatsProps = {
   totalItems: number;
@@ -124,68 +125,39 @@ function NotesFloatingStats({
     setIsCancelConfirming(false);
   }
 
-  function handleDismissReminder() {
-    if (!focusSession || focusSession.phase === 'running') {
-      return;
-    }
-
-    onDismissFocusTimer();
+  function handleTestNotification() {
+    void triggerFocusReminder('Manual system notification test');
   }
 
   return (
     <>
-      {focusSession ? (
-        focusSession.phase === 'running' ? (
-          <div className="focus-timer-overlay" aria-live="polite">
-            <div className="focus-timer-card">
-              <div className="focus-timer-main">
-                <strong className="focus-timer-task">{focusSession.content}</strong>
-                <span className="focus-timer-countdown">
-                  {formatFocusDuration(focusSession.remainingSeconds)}
-                </span>
-              </div>
-              <div className="focus-timer-actions">
-                <span className="focus-timer-hint">
-                  {isCancelConfirming ? 'Click again to stop' : 'Focus mode is running'}
-                </span>
-                <button
-                  type="button"
-                  className={
-                    isCancelConfirming
-                      ? 'focus-timer-stop-button focus-timer-stop-button-confirm'
-                      : 'focus-timer-stop-button'
-                  }
-                  onClick={handleStopTimer}
-                >
-                  {isCancelConfirming ? 'Confirm' : 'Stop'}
-                </button>
-              </div>
+      {focusSession?.phase === 'running' ? (
+        <div className="focus-timer-overlay" aria-live="polite">
+          <div className="focus-timer-card">
+            <div className="focus-timer-main">
+              <strong className="focus-timer-task">{focusSession.content}</strong>
+              <span className="focus-timer-countdown">
+                {formatFocusDuration(focusSession.remainingSeconds)}
+              </span>
+            </div>
+            <div className="focus-timer-actions">
+              <span className="focus-timer-hint">
+                {isCancelConfirming ? 'Click again to stop' : 'Focus mode is running'}
+              </span>
+              <button
+                type="button"
+                className={
+                  isCancelConfirming
+                    ? 'focus-timer-stop-button focus-timer-stop-button-confirm'
+                    : 'focus-timer-stop-button'
+                }
+                onClick={handleStopTimer}
+              >
+                {isCancelConfirming ? 'Confirm' : 'Stop'}
+              </button>
             </div>
           </div>
-        ) : (
-          <button
-            type="button"
-            className="focus-timer-overlay focus-timer-overlay-button"
-            aria-live="assertive"
-            onClick={handleDismissReminder}
-          >
-            <div className="focus-timer-card">
-              <div className="focus-timer-main">
-                <strong className="focus-timer-task">{focusSession.content}</strong>
-                <span className="focus-timer-countdown">
-                  {formatFocusDuration(focusSession.remainingSeconds)}
-                </span>
-              </div>
-              <div className="focus-timer-actions">
-                <span className="focus-timer-hint">
-                  {focusSession.phase === 'alerting'
-                    ? 'Time is up. Click to dismiss.'
-                    : 'Completed. Click to clear.'}
-                </span>
-              </div>
-            </div>
-          </button>
-        )
+        </div>
       ) : null}
       <div className="floating-footer-cluster">
         <div className="floating-alarm-dock">
@@ -285,6 +257,13 @@ function NotesFloatingStats({
             </div>
           </section>
         </div>
+        <button
+          type="button"
+          className="floating-reminder-test"
+          onClick={handleTestNotification}
+        >
+          Test
+        </button>
         <aside className="floating-stats" aria-label="Notes quick summary">
           <div className="floating-stat">
             <span className="floating-stat-label">Total</span>

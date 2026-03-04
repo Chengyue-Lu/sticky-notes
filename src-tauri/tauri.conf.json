@@ -1,0 +1,42 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "StickyDesk Tauri",
+  "version": "0.1.0",
+  "identifier": "com.lcy.stickydesk.tauri",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeDevCommand": "npm run dev -- --host 127.0.0.1 --port 1420",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "StickyDesk Tauri",
+        "width": 360,
+        "height": 720,
+        "minWidth": 360,
+        "minHeight": 720,
+        "resizable": true,
+        "decorations": false,
+        "transparent": true,
+        "shadow": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

@@ -13,6 +13,7 @@ import { useAppSettings } from '../hooks/useAppSettings';
 import { useFocusTimer } from '../hooks/useFocusTimer';
 import { useFutureTasks } from '../hooks/useFutureTasks';
 import { useNotes } from '../hooks/useNotes';
+import { isCursorInsideWindow, triggerFocusReminder } from '../lib/desktopApi';
 import type { CreateNoteInput } from '../types/note';
 
 function NotesBoard() {
@@ -96,15 +97,8 @@ function NotesBoard() {
     }
 
     const syncPointerState = async () => {
-      if (typeof window.stickyDesk?.isCursorInsideWindow !== 'function') {
-        if (!isDisposed) {
-          setIsPointerInsideShell(true);
-        }
-        return;
-      }
-
       try {
-        const nextIsInside = await window.stickyDesk.isCursorInsideWindow();
+        const nextIsInside = await isCursorInsideWindow();
 
         if (!isDisposed) {
           setIsPointerInsideShell(nextIsInside);
@@ -129,6 +123,33 @@ function NotesBoard() {
       }
     };
   }, [settings.autoFadeWhenInactive]);
+
+  useEffect(() => {
+    const reminderTitle =
+      focusSession?.phase === 'alerting' ? focusSession.content : null;
+
+    if (!reminderTitle) {
+      return;
+    }
+
+    let isDisposed = false;
+
+    const runReminderTrigger = async () => {
+      try {
+        await triggerFocusReminder(reminderTitle);
+      } finally {
+        if (!isDisposed) {
+          dismissTimer();
+        }
+      }
+    };
+
+    void runReminderTrigger();
+
+    return () => {
+      isDisposed = true;
+    };
+  }, [focusSession, dismissTimer]);
 
   async function handleCreateNote(input: CreateNoteInput) {
     await addNote(input);
@@ -169,14 +190,13 @@ function NotesBoard() {
       ? 'app-shell-auto-fade-inactive'
       : '',
     isVisualShellReady ? '' : 'app-shell-booting',
-    focusSession?.phase === 'alerting' ? 'app-shell-alerting' : '',
   ]
     .filter(Boolean)
     .join(' ');
 
   return (
     <main className={shellClassName}>
-      <div className="app-top-drag-zone" aria-hidden="true" />
+      <div className="app-top-drag-zone" aria-hidden="true" data-tauri-drag-region />
       <WindowOverlayControls
         settings={settings}
         onThemeChange={updateTheme}

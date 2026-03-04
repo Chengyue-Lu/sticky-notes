@@ -201,21 +201,17 @@ body {
   box-shadow: none;
 }
 
-.app-shell-alerting {
-  animation: app-shell-alert-flash 3s ease-in-out infinite;
-}
-
 .app-shell-auto-fade .window-overlay,
 .app-shell-auto-fade .floating-footer-cluster {
   transition: opacity 240ms ease;
 }
 
-.app-shell-auto-fade-inactive:not(:focus-within):not(.app-shell-alerting) {
+.app-shell-auto-fade-inactive:not(:focus-within) {
   --shell-surface-opacity: 0.04;
 }
 
-.app-shell-auto-fade-inactive:not(:focus-within):not(.app-shell-alerting) .window-overlay,
-.app-shell-auto-fade-inactive:not(:focus-within):not(.app-shell-alerting) .floating-footer-cluster {
+.app-shell-auto-fade-inactive:not(:focus-within) .window-overlay,
+.app-shell-auto-fade-inactive:not(:focus-within) .floating-footer-cluster {
   opacity: 0.08;
 }
 
@@ -1946,15 +1942,6 @@ body {
   pointer-events: none;
 }
 
-.focus-timer-overlay-button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  pointer-events: auto;
-  -webkit-app-region: no-drag;
-}
-
 .focus-timer-card {
   display: grid;
   gap: 6px;
@@ -1973,10 +1960,6 @@ body {
   backdrop-filter: blur(16px);
   pointer-events: auto;
   -webkit-app-region: drag;
-}
-
-.focus-timer-overlay-button .focus-timer-card {
-  -webkit-app-region: no-drag;
 }
 
 .focus-timer-main,
@@ -2091,6 +2074,46 @@ body {
   justify-content: center;
   font-size: 0.92rem;
   line-height: 1;
+}
+
+.floating-reminder-test {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(var(--theme-panel-border-rgb), 0.7);
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(var(--theme-soft-surface-rgb), 0.96),
+      rgba(var(--theme-shell-base-b-rgb), 0.9)
+    );
+  color: #334155;
+  font: inherit;
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  box-shadow:
+    inset 0 1px 0 rgba(var(--theme-frame-rgb), 0.9),
+    0 6px 12px rgba(15, 23, 42, 0.12);
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.floating-reminder-test:hover {
+  transform: translateY(-1px);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(var(--theme-soft-surface-rgb), 0.98),
+      rgba(var(--theme-accent-soft-rgb), 0.88)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(var(--theme-frame-rgb), 0.92),
+    0 8px 14px rgba(15, 23, 42, 0.14);
 }
 
 .focus-timer-popover {
@@ -2227,19 +2250,6 @@ body {
   border: 1px solid rgba(var(--theme-accent-soft-rgb), 0.82);
   background: rgba(var(--theme-accent-soft-rgb), 0.94);
   color: rgb(var(--theme-accent-strong-rgb));
-}
-
-@keyframes app-shell-alert-flash {
-  0%,
-  100% {
-    opacity: 1;
-    filter: brightness(1);
-  }
-
-  50% {
-    opacity: 0.64;
-    filter: brightness(1.18);
-  }
 }
 
 /* Fixed footer summary pill. This is the small persistent stats bar at the bottom of the window. */
