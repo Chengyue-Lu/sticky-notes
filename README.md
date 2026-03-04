@@ -132,6 +132,7 @@ Portable and unpacked builds are the current supported release formats. An NSIS 
 
 - [ ] Add adjustable global UI scale / font size
 - [ ] Add adjustable shell translucency / background opacity
+- [ ] Add inactive auto-fade for the shell and floating controls when the pointer leaves the app
 - [ ] Expand the current short focus timer into future countdown tasks for longer schedules
 - [ ] Support multiple upcoming timers instead of only one active short session
 - [ ] Evaluate `electron-vite` to simplify and unify the Electron build pipeline
@@ -140,6 +141,7 @@ Portable and unpacked builds are the current supported release formats. An NSIS 
 ### Later
 
 - [ ] Add tray integration and background controls
+- [ ] Optimize the animation for new creation and setting expansion
 - [ ] Add import / export for notes and settings
 - [ ] Revisit richer note metadata and filtering
 - [ ] Consider Tauri as a future migration option if Electron no longer meets startup or package-size goals
