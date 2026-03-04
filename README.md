@@ -34,6 +34,12 @@ On Windows, the current app identity remains bound to the existing Tauri identif
 - Current target version: `1.0.0`
 - Package version, Tauri bundle version, and Rust crate version are aligned to `1.0.0`
 
+## Why Tauri
+
+`v1.0.0` is the first stable release after the migration from Electron to Tauri.
+
+It keeps the original core experience while reducing runtime overhead, moving desktop logic into Rust, and preparing the project for follow-up desktop features such as tray support, auto-start, and click-through mode.
+
 ## Roadmap
 
 Planned directions for `v1.0.1`:
@@ -46,4 +52,4 @@ Longer-term idea:
 
 - Online active-time comparison is a future research item and is not planned for the current release line
 
-See [Usage Guide](./使用说明.md) for user-facing instructions.
+See the Chinese usage guide file in the project root for user-facing instructions [☞使用说明](./使用说明.md).
