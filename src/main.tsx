@@ -1,5 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import App from './App';
 import './index.css';
 
@@ -17,14 +19,34 @@ createRoot(rootElement).render(
 
 const bootShell = document.getElementById('boot-shell');
 
-if (bootShell) {
-  window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(() => {
-      bootShell.dataset.hidden = 'true';
+async function revealWindowAndDismissBootShell() {
+  let shouldShowWindow = true;
 
-      window.setTimeout(() => {
-        bootShell.remove();
-      }, 220);
+  try {
+    shouldShowWindow = await invoke<boolean>('should_show_window_on_boot');
+  } catch {
+    // In non-Tauri contexts keep the page visible.
+  }
+
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(async () => {
+      if (shouldShowWindow) {
+        try {
+          await getCurrentWindow().show();
+        } catch {
+          // Ignore show failures in browser-only runs.
+        }
+      }
+
+      if (bootShell) {
+        bootShell.dataset.hidden = 'true';
+
+        window.setTimeout(() => {
+          bootShell.remove();
+        }, 220);
+      }
     });
   });
 }
+
+void revealWindowAndDismissBootShell();

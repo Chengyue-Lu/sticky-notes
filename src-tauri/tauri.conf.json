@@ -19,6 +19,7 @@
         "minHeight": 720,
         "resizable": true,
         "decorations": false,
+        "visible": false,
         "transparent": true,
         "shadow": true,
         "fullscreen": false

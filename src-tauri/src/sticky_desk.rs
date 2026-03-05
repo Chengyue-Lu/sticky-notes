@@ -1,7 +1,10 @@
 use std::{
     fs,
     path::PathBuf,
-    sync::{Mutex, MutexGuard},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex, MutexGuard,
+    },
 };
 
 use chrono::{DateTime, Duration, Local, LocalResult, NaiveDateTime, TimeZone, Timelike};
@@ -35,6 +38,7 @@ const DEFAULT_NOTE_SORT_FIELD: &str = "createdAt";
 const DEFAULT_NOTE_SORT_DIRECTION: &str = "desc";
 const UNTITLED_NOTE_TITLE: &str = "Untitled note";
 const UNTITLED_TASK_TITLE: &str = "Untitled task";
+static APP_IS_QUITTING: AtomicBool = AtomicBool::new(false);
 
 pub type CommandResult<T> = Result<T, String>;
 
@@ -779,6 +783,20 @@ pub fn handle_window_event(window: &Window, event: &WindowEvent) {
         return;
     }
 
+    if let WindowEvent::CloseRequested { api, .. } = event {
+        if APP_IS_QUITTING.load(Ordering::Relaxed) {
+            return;
+        }
+
+        api.prevent_close();
+
+        if let Err(error) = window.hide() {
+            log::warn!("StickyDesk: failed to hide main window on close request: {error}");
+        }
+
+        return;
+    }
+
     let WindowEvent::Resized(size) = event else {
         return;
     };
@@ -805,8 +823,25 @@ pub fn minimize_window(window: Window) -> CommandResult<()> {
 #[tauri::command]
 pub fn close_window(window: Window) -> CommandResult<()> {
     window
-        .close()
-        .map_err(|error| format!("StickyDesk: failed to close window: {error}"))
+        .hide()
+        .map_err(|error| format!("StickyDesk: failed to hide window: {error}"))
+}
+
+pub fn request_app_exit(app: &AppHandle) {
+    APP_IS_QUITTING.store(true, Ordering::Relaxed);
+
+    if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        if let Err(error) = window.close() {
+            log::warn!("StickyDesk: failed to close main window during app exit: {error}");
+        }
+    }
+
+    app.exit(0);
+}
+
+#[tauri::command]
+pub fn should_show_window_on_boot() -> bool {
+    !std::env::args().any(|argument| argument == "--autostart")
 }
 
 #[tauri::command]
