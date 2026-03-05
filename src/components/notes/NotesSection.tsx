@@ -5,7 +5,6 @@ type NotesSectionProps = {
   title: string;
   sectionId: string;
   notes: Note[];
-  pinned?: boolean;
   expandedNoteId: string | null;
   onToggleExpand: (id: string) => void;
   onDelete: (id: string) => Promise<boolean>;
@@ -16,7 +15,6 @@ function NotesSection({
   title,
   sectionId,
   notes,
-  pinned = false,
   expandedNoteId,
   onToggleExpand,
   onDelete,
@@ -34,7 +32,6 @@ function NotesSection({
       </div>
       <NoteList
         notes={notes}
-        pinned={pinned}
         expandedNoteId={expandedNoteId}
         onToggleExpand={onToggleExpand}
         onDelete={onDelete}

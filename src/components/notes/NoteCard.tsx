@@ -7,7 +7,6 @@ import {
 
 type NoteCardProps = {
   note: Note;
-  pinned?: boolean;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
   onDelete: (id: string) => Promise<boolean>;
@@ -16,7 +15,6 @@ type NoteCardProps = {
 
 function NoteCard({
   note,
-  pinned = false,
   isExpanded,
   onToggleExpand,
   onDelete,
@@ -258,7 +256,7 @@ function NoteCard({
   return (
     <article
       className={
-        pinned
+        note.pinned
           ? isExpanded
             ? 'note-card note-card-pinned note-card-expanded'
             : 'note-card note-card-pinned'
@@ -357,7 +355,14 @@ function NoteCard({
             </span>
           </button>
         ) : (
-          <p className="note-time">{displayTime}</p>
+          <div className="note-time-stack">
+            <p className="note-time">{displayTime}</p>
+            {note.pinned ? (
+              <span className="note-pinned-badge" aria-label="Pinned note">
+                &#128204;
+              </span>
+            ) : null}
+          </div>
         )}
       </div>
       <div

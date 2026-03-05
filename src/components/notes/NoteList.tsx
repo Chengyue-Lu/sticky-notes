@@ -3,7 +3,6 @@ import type { Note, UpdateNoteInput } from '../../types/note';
 
 type NoteListProps = {
   notes: Note[];
-  pinned?: boolean;
   expandedNoteId: string | null;
   onToggleExpand: (id: string) => void;
   onDelete: (id: string) => Promise<boolean>;
@@ -12,7 +11,6 @@ type NoteListProps = {
 
 function NoteList({
   notes,
-  pinned = false,
   expandedNoteId,
   onToggleExpand,
   onDelete,
@@ -24,7 +22,6 @@ function NoteList({
         <NoteCard
           key={note.id}
           note={note}
-          pinned={pinned}
           isExpanded={expandedNoteId === note.id}
           onToggleExpand={onToggleExpand}
           onDelete={onDelete}

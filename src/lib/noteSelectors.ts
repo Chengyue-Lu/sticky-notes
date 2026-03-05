@@ -1,14 +1,6 @@
 import type { Note } from '../types/note';
 import type { NoteSortDirection, NoteSortField } from '../types/settings';
 
-export function getPinnedNotes(notes: Note[]): Note[] {
-  return notes.filter((note) => note.pinned);
-}
-
-export function getRegularNotes(notes: Note[]): Note[] {
-  return notes.filter((note) => !note.pinned);
-}
-
 export function filterNotes(notes: Note[], searchQuery: string): Note[] {
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -41,20 +33,22 @@ export function sortNotes(
   field: NoteSortField,
   direction: NoteSortDirection,
 ): Note[] {
-  const sortedNotes = [...notes].sort((leftNote, rightNote) => {
+  return [...notes].sort((leftNote, rightNote) => {
+    if (Boolean(leftNote.pinned) !== Boolean(rightNote.pinned)) {
+      return leftNote.pinned ? -1 : 1;
+    }
+
     const leftTimestamp = getSortableTimestamp(leftNote, field);
     const rightTimestamp = getSortableTimestamp(rightNote, field);
 
     if (leftTimestamp === rightTimestamp) {
-      return rightNote.title.localeCompare(leftNote.title);
+      return leftNote.title.localeCompare(rightNote.title);
+    }
+
+    if (direction === 'asc') {
+      return leftTimestamp - rightTimestamp;
     }
 
     return rightTimestamp - leftTimestamp;
   });
-
-  if (direction === 'asc') {
-    sortedNotes.reverse();
-  }
-
-  return sortedNotes;
 }

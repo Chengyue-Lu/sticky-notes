@@ -93,6 +93,7 @@ pub struct FutureTask {
     pub title: String,
     pub due_at: String,
     pub created_at: String,
+    pub completed: bool,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -100,6 +101,19 @@ pub struct FutureTask {
 pub struct CreateFutureTaskInput {
     pub title: String,
     pub due_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateFutureTaskInput {
+    pub title: Option<String>,
+    pub due_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateFutureTaskStatusInput {
+    pub completed: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -519,6 +533,10 @@ fn normalize_future_task_value(value: &Value, index: usize) -> Option<FutureTask
         ),
         due_at,
         created_at,
+        completed: object
+            .get("completed")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
     })
 }
 
@@ -665,6 +683,61 @@ fn create_future_task_record(input: CreateFutureTaskInput) -> FutureTask {
         title: normalize_title(Some(input.title.as_str()), UNTITLED_TASK_TITLE),
         due_at,
         created_at: timestamp,
+        completed: false,
+    }
+}
+
+fn update_future_task_record(task: &FutureTask, input: UpdateFutureTaskInput) -> FutureTask {
+    let next_title = match input.title.as_deref() {
+        Some(title) => normalize_title(Some(title), task.title.as_str()),
+        None => task.title.clone(),
+    };
+    let next_due_at = match input.due_at.as_deref() {
+        Some(due_at) => parse_timestamp(due_at)
+            .map(format_timestamp)
+            .unwrap_or_else(|| task.due_at.clone()),
+        None => task.due_at.clone(),
+    };
+
+    FutureTask {
+        id: task.id.clone(),
+        title: next_title,
+        due_at: next_due_at,
+        created_at: task.created_at.clone(),
+        completed: task.completed,
+    }
+}
+
+fn update_future_task_status_record(
+    task: &FutureTask,
+    input: UpdateFutureTaskStatusInput,
+) -> FutureTask {
+    if input.completed {
+        return FutureTask {
+            id: task.id.clone(),
+            title: task.title.clone(),
+            due_at: task.due_at.clone(),
+            created_at: task.created_at.clone(),
+            completed: true,
+        };
+    }
+
+    let now = Local::now();
+    let should_shift_due_at = parse_timestamp(task.due_at.as_str())
+        .map(|due_at| due_at <= now)
+        .unwrap_or(true);
+    let due_at = if task.completed && should_shift_due_at {
+        format_timestamp(now + Duration::hours(1))
+    } else {
+        task.due_at.clone()
+    };
+
+    FutureTask {
+        id: task.id.clone(),
+        title: task.title.clone(),
+        due_at,
+        created_at: task.created_at.clone(),
+        completed: false,
     }
 }
 
@@ -1095,6 +1168,27 @@ pub fn create_future_task(
 }
 
 #[tauri::command]
+pub fn update_future_task(
+    app: AppHandle,
+    state: State<'_, StorageState>,
+    id: String,
+    input: UpdateFutureTaskInput,
+) -> CommandResult<Option<FutureTask>> {
+    with_storage_lock(&state, || {
+        let mut tasks = read_future_tasks_unlocked(&app)?;
+        let Some(target_index) = tasks.iter().position(|task| task.id == id) else {
+            return Ok(None);
+        };
+        let task = update_future_task_record(&tasks[target_index], input);
+
+        tasks[target_index] = task.clone();
+        write_future_tasks_unlocked(&app, &tasks)?;
+
+        Ok(Some(task))
+    })
+}
+
+#[tauri::command]
 pub fn delete_future_task(
     app: AppHandle,
     state: State<'_, StorageState>,
@@ -1113,5 +1207,26 @@ pub fn delete_future_task(
         write_future_tasks_unlocked(&app, &tasks)?;
 
         Ok(true)
+    })
+}
+
+#[tauri::command]
+pub fn set_future_task_completed(
+    app: AppHandle,
+    state: State<'_, StorageState>,
+    id: String,
+    input: UpdateFutureTaskStatusInput,
+) -> CommandResult<Option<FutureTask>> {
+    with_storage_lock(&state, || {
+        let mut tasks = read_future_tasks_unlocked(&app)?;
+        let Some(target_index) = tasks.iter().position(|task| task.id == id) else {
+            return Ok(None);
+        };
+        let task = update_future_task_status_record(&tasks[target_index], input);
+
+        tasks[target_index] = task.clone();
+        write_future_tasks_unlocked(&app, &tasks)?;
+
+        Ok(Some(task))
     })
 }

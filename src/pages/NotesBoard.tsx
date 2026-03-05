@@ -6,6 +6,7 @@ import NotesFloatingStats from '../components/notes/NotesFloatingStats';
 import NotesHero from '../components/notes/NotesHero';
 import NotesEmptyState from '../components/notes/NotesEmptyState';
 import NotesSection from '../components/notes/NotesSection';
+import NoteList from '../components/notes/NoteList';
 import NotesToolbar from '../components/notes/NotesToolbar';
 import WindowOverlayControls from '../components/notes/WindowOverlayControls';
 import { useActiveTime } from '../hooks/useActiveTime';
@@ -42,6 +43,8 @@ function NotesBoard() {
     futureTasks,
     addFutureTask,
     removeFutureTask,
+    toggleFutureTaskCompleted,
+    editFutureTask,
   } = useFutureTasks();
   const {
     todayActiveSeconds,
@@ -55,8 +58,6 @@ function NotesBoard() {
   const {
     notes,
     visibleNotes,
-    visiblePinnedNotes,
-    visibleRegularNotes,
     searchQuery,
     setSearchQuery,
     isFiltering,
@@ -290,7 +291,7 @@ function NotesBoard() {
                     : 'notes-pane-scroll'
                 }
               >
-                {/* Search mode collapses the board into one result list; otherwise keep pinned and regular notes separate. */}
+                {/* Search mode keeps a titled section; regular mode is a single plain list with pinned notes staying on top. */}
                 {isFiltering ? (
                   visibleNotes.length > 0 ? (
                     <NotesSection
@@ -310,27 +311,13 @@ function NotesBoard() {
                   )
                 ) : (
                   notes.length > 0 ? (
-                    <>
-                      <NotesSection
-                        title="Pinned Notes"
-                        sectionId="pinned-notes-title"
-                        notes={visiblePinnedNotes}
-                        pinned
-                        expandedNoteId={expandedNoteId}
-                        onToggleExpand={handleToggleExpand}
-                        onDelete={handleDeleteNote}
-                        onUpdate={editNote}
-                      />
-                      <NotesSection
-                        title="All Notes"
-                        sectionId="all-notes-title"
-                        notes={visibleRegularNotes}
-                        expandedNoteId={expandedNoteId}
-                        onToggleExpand={handleToggleExpand}
-                        onDelete={handleDeleteNote}
-                        onUpdate={editNote}
-                      />
-                    </>
+                    <NoteList
+                      notes={visibleNotes}
+                      expandedNoteId={expandedNoteId}
+                      onToggleExpand={handleToggleExpand}
+                      onDelete={handleDeleteNote}
+                      onUpdate={editNote}
+                    />
                   ) : (
                     <NotesEmptyState
                       title="No notes yet"
@@ -349,6 +336,8 @@ function NotesBoard() {
                 );
               }}
               onDelete={removeFutureTask}
+              onToggleCompleted={toggleFutureTaskCompleted}
+              onUpdate={editFutureTask}
             />
           </div>
         </section>

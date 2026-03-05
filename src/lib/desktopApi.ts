@@ -4,7 +4,12 @@ import {
   requestPermission,
   sendNotification,
 } from '@tauri-apps/plugin-notification';
-import type { CreateFutureTaskInput, FutureTask } from '../types/futureTask';
+import type {
+  CreateFutureTaskInput,
+  FutureTask,
+  UpdateFutureTaskInput,
+  UpdateFutureTaskStatusInput,
+} from '../types/futureTask';
 import type { CreateNoteInput, Note, UpdateNoteInput } from '../types/note';
 import type {
   AppSettings,
@@ -193,5 +198,25 @@ export async function createFutureTask(
 export async function deleteFutureTask(id: string): Promise<boolean> {
   return invokeCommand<boolean>('delete_future_task', {
     id,
+  });
+}
+
+export async function updateFutureTask(
+  id: string,
+  input: UpdateFutureTaskInput,
+): Promise<FutureTask | null> {
+  return invokeCommand<FutureTask | null>('update_future_task', {
+    id,
+    input,
+  });
+}
+
+export async function setFutureTaskCompleted(
+  id: string,
+  input: UpdateFutureTaskStatusInput,
+): Promise<FutureTask | null> {
+  return invokeCommand<FutureTask | null>('set_future_task_completed', {
+    id,
+    input,
   });
 }

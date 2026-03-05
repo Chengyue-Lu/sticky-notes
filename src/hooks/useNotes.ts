@@ -7,8 +7,6 @@ import {
 } from '../data/notes';
 import {
   filterNotes,
-  getPinnedNotes,
-  getRegularNotes,
   sortNotes,
 } from '../lib/noteSelectors';
 import type { CreateNoteInput, Note, UpdateNoteInput } from '../types/note';
@@ -17,8 +15,6 @@ import type { NoteSortDirection, NoteSortField } from '../types/settings';
 type UseNotesResult = {
   notes: Note[];
   visibleNotes: Note[];
-  visiblePinnedNotes: Note[];
-  visibleRegularNotes: Note[];
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   isFiltering: boolean;
@@ -101,8 +97,6 @@ export function useNotes(
   return {
     notes,
     visibleNotes,
-    visiblePinnedNotes: getPinnedNotes(visibleNotes),
-    visibleRegularNotes: getRegularNotes(visibleNotes),
     searchQuery,
     setSearchQuery,
     isFiltering,

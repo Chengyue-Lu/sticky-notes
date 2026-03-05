@@ -128,6 +128,8 @@ pub fn run() {
             sticky_desk::delete_note,
             sticky_desk::list_future_tasks,
             sticky_desk::create_future_task,
+            sticky_desk::update_future_task,
+            sticky_desk::set_future_task_completed,
             sticky_desk::delete_future_task,
         ])
         .on_window_event(|window, event| {
