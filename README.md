@@ -1,5 +1,7 @@
 # StickyDesk
 
+StickyDesk 是一个基于 Tauri、React 和 TypeScript 构建的桌面便签应用。
+
 StickyDesk is a desktop sticky notes app built with Tauri, React, and TypeScript.
 
 This is the first stable Tauri release line. The current release target is `v1.0.0`.
@@ -53,3 +55,5 @@ Longer-term idea:
 - Online active-time comparison is a future research item and is not planned for the current release line
 
 See the Chinese usage guide file in the project root for user-facing instructions [☞使用说明](./使用说明.md).
+
+See the Chinese roadmap file in the project root for planned features [☞预期规划](./预期规划.md).
