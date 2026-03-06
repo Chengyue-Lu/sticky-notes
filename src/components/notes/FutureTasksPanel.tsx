@@ -1,10 +1,19 @@
+﻿/** 文件说明：未来任务面板组件，负责任务展示、编辑、完成与删除交互。 */
 import { useEffect, useMemo, useState } from 'react';
 import type { FutureTask, UpdateFutureTaskInput } from '../../types/futureTask';
+import { buildFutureTaskRows } from './futureTasksPanel/taskRows';
+import {
+  formatAbsoluteDueAt,
+  toDateTimeInputValue,
+} from './futureTasksPanel/time';
+import { useNowTimestamp } from './futureTasksPanel/useNowTimestamp';
 
 const DELETE_CONFIRM_TIMEOUT_MS = 2200;
 
 type FutureTasksPanelProps = {
   tasks: FutureTask[];
+  isDetached: boolean;
+  onToggleDetached: () => void;
   isComposerOpen: boolean;
   onToggleComposer: () => void;
   onDelete: (id: string) => Promise<boolean>;
@@ -12,53 +21,10 @@ type FutureTasksPanelProps = {
   onUpdate: (id: string, input: UpdateFutureTaskInput) => Promise<FutureTask | null>;
 };
 
-function formatCountdown(dueAt: string, nowTimestamp: number): string {
-  const deltaMs = new Date(dueAt).getTime() - nowTimestamp;
-
-  if (!Number.isFinite(deltaMs) || deltaMs <= 0) {
-    return 'Due now';
-  }
-
-  const totalSeconds = Math.floor(deltaMs / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (days > 0) {
-    return `${days}d ${hours}h ${minutes}m`;
-  }
-
-  return `${hours}h ${minutes}m ${seconds}s`;
-}
-
-function padTimePart(value: number): string {
-  return String(value).padStart(2, '0');
-}
-
-function toDateTimeInputValue(value: string): string {
-  const parsedTimestamp = new Date(value).getTime();
-  const date = Number.isFinite(parsedTimestamp)
-    ? new Date(parsedTimestamp)
-    : new Date(Date.now() + 60 * 60 * 1000);
-
-  return `${date.getFullYear()}-${padTimePart(date.getMonth() + 1)}-${padTimePart(
-    date.getDate(),
-  )}T${padTimePart(date.getHours())}:${padTimePart(date.getMinutes())}`;
-}
-
-function formatAbsoluteDueAt(value: string): string {
-  const parsedTimestamp = new Date(value).getTime();
-
-  if (!Number.isFinite(parsedTimestamp)) {
-    return 'Invalid due time';
-  }
-
-  return new Date(parsedTimestamp).toLocaleString();
-}
-
 function FutureTasksPanel({
   tasks,
+  isDetached,
+  onToggleDetached,
   isComposerOpen,
   onToggleComposer,
   onDelete,
@@ -82,7 +48,7 @@ function FutureTasksPanel({
     taskId: string;
     message: string;
   } | null>(null);
-  const [nowTimestamp, setNowTimestamp] = useState(() => Date.now());
+  const nowTimestamp = useNowTimestamp();
 
   useEffect(() => {
     if (!confirmingDeleteId) {
@@ -133,16 +99,6 @@ function FutureTasksPanel({
     }
   }, [expandedTaskId, editingDueTaskId, editingTitleTaskId, tasks]);
 
-  useEffect(() => {
-    const timerId = window.setInterval(() => {
-      setNowTimestamp(Date.now());
-    }, 1000);
-
-    return () => {
-      window.clearInterval(timerId);
-    };
-  }, []);
-
   async function handleDeleteTask(id: string) {
     if (removingTaskId === id) {
       return;
@@ -173,36 +129,7 @@ function FutureTasksPanel({
   }
 
   const taskRows = useMemo(
-    () => {
-      const rows = tasks.map((task) => {
-        const dueTimestamp = new Date(task.dueAt).getTime();
-        const isOverdue = !task.completed && dueTimestamp <= nowTimestamp;
-
-        return {
-          ...task,
-          isOverdue,
-          countdown: formatCountdown(task.dueAt, nowTimestamp),
-          statusLabel: task.completed || isOverdue ? 'task over!' : null,
-        };
-      });
-
-      rows.sort((leftTask, rightTask) => {
-        if (leftTask.completed !== rightTask.completed) {
-          return leftTask.completed ? 1 : -1;
-        }
-
-        if (leftTask.isOverdue !== rightTask.isOverdue) {
-          return leftTask.isOverdue ? -1 : 1;
-        }
-
-        const leftTimestamp = new Date(leftTask.dueAt).getTime();
-        const rightTimestamp = new Date(rightTask.dueAt).getTime();
-
-        return leftTimestamp - rightTimestamp;
-      });
-
-      return rows;
-    },
+    () => buildFutureTaskRows(tasks, nowTimestamp),
     [nowTimestamp, tasks],
   );
 
@@ -350,6 +277,20 @@ function FutureTasksPanel({
         </div>
         <div className="future-tasks-head-actions">
           <span className="section-count">{tasks.length}</span>
+          <button
+            type="button"
+            className={
+              isDetached
+                ? 'future-task-create-button future-task-create-button-active future-task-create-button-combine'
+                : 'future-task-create-button'
+            }
+            aria-label={isDetached ? 'Combine tasks module' : 'Split tasks module'}
+            onClick={onToggleDetached}
+          >
+            <span className="future-task-create-glyph" aria-hidden="true">
+              {isDetached ? 'C' : 'S'}
+            </span>
+          </button>
           <button
             type="button"
             className={
@@ -648,3 +589,4 @@ function FutureTasksPanel({
 }
 
 export default FutureTasksPanel;
+

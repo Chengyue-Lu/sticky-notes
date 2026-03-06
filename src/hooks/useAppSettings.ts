@@ -1,17 +1,15 @@
+﻿/** 文件说明：应用设置状态 Hook，封装主题、缩放、透明度等设置读写。 */
 import { useEffect, useState } from 'react';
 import {
   getSettings as loadPersistedSettings,
   setAlwaysOnTop,
   setAutoFadeWhenInactive,
-  setNoteSort,
   setShellOpacity,
   setTheme,
   setUiScale,
 } from '../lib/desktopApi';
 import type {
   AppSettings,
-  NoteSortDirection,
-  NoteSortField,
   ThemeId,
 } from '../types/settings';
 
@@ -113,10 +111,6 @@ type UseAppSettingsResult = {
   updateShellOpacity: (value: number) => Promise<void>;
   updateAlwaysOnTop: (value: boolean) => Promise<boolean>;
   updateAutoFadeWhenInactive: (value: boolean) => Promise<void>;
-  updateNoteSort: (
-    field: NoteSortField,
-    direction: NoteSortDirection,
-  ) => Promise<void>;
 };
 
 export function useAppSettings(): UseAppSettingsResult {
@@ -239,24 +233,6 @@ export function useAppSettings(): UseAppSettingsResult {
     }
   };
 
-  const updateNoteSort = async (
-    field: NoteSortField,
-    direction: NoteSortDirection,
-  ) => {
-    setSettings((currentSettings) => ({
-      ...currentSettings,
-      noteSort: { field, direction },
-    }));
-
-    try {
-      const nextSettings = normalizeSettings(await setNoteSort(field, direction));
-      setSettings(nextSettings);
-      return;
-    } catch {
-      // Fall through to local state.
-    }
-  };
-
   return {
     settings,
     updateTheme,
@@ -264,6 +240,6 @@ export function useAppSettings(): UseAppSettingsResult {
     updateShellOpacity,
     updateAlwaysOnTop,
     updateAutoFadeWhenInactive,
-    updateNoteSort,
   };
 }
+

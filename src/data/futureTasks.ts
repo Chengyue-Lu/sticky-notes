@@ -1,3 +1,4 @@
+﻿/** 文件说明：未来任务数据访问层，统一转发到桌面 API。 */
 import type {
   CreateFutureTaskInput,
   FutureTask,
@@ -39,3 +40,4 @@ export async function setFutureTaskCompleted(
 ): Promise<FutureTask | null> {
   return setFutureTaskCompletedRecord(id, input);
 }
+

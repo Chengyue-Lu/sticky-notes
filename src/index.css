@@ -1316,6 +1316,17 @@ body {
     );
 }
 
+/* C(Combine) 按钮默认不悬浮，避免常驻上浮；仅 hover 时沿用通用悬浮。 */
+.future-task-create-button-combine {
+  transform: translateY(0);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(var(--theme-soft-surface-rgb), 0.94),
+      rgba(var(--theme-shell-base-b-rgb), 0.88)
+    );
+}
+
 .future-task-create-glyph {
   display: inline-flex;
   align-items: center;

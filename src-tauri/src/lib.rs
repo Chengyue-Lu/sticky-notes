@@ -1,3 +1,4 @@
+﻿// 文件说明：Tauri 后端入口，负责插件、托盘、命令注册与应用生命周期。
 mod sticky_desk;
 
 use tauri::{
@@ -159,3 +160,4 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+

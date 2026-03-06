@@ -1,3 +1,4 @@
+﻿/** 文件说明：前端应用入口，负责挂载 React 应用并处理启动显示逻辑。 */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { invoke } from '@tauri-apps/api/core';
@@ -54,3 +55,4 @@ async function revealWindowAndDismissBootShell() {
 }
 
 void revealWindowAndDismissBootShell();
+

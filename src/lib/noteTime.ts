@@ -29,10 +29,6 @@ function formatTimePart(date: Date): string {
   return `${hours}:${minutes}`;
 }
 
-export function formatNoteTimestampForStorage(date: Date): string {
-  return `${formatDatePart(date)}T${formatTimePart(date)}:00`;
-}
-
 export function formatNoteTimestampForDisplay(
   timestamp: string,
   referenceDate: Date = new Date(),

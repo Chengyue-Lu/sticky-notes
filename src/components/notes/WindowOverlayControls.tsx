@@ -1,3 +1,4 @@
+﻿/** 文件说明：窗口右上角控制区组件，包含设置面板与窗口操作按钮。 */
 import { useEffect, useRef, useState } from 'react';
 import {
   closeWindow,
@@ -393,3 +394,4 @@ function WindowOverlayControls({
 }
 
 export default WindowOverlayControls;
+

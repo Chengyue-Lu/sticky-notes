@@ -1,3 +1,4 @@
+﻿/** 文件说明：单条便签卡片组件，处理便签展示与行内编辑交互。 */
 import { useEffect, useState } from 'react';
 import type { Note, UpdateNoteInput } from '../../types/note';
 import {
@@ -593,3 +594,4 @@ function NoteCard({
 }
 
 export default NoteCard;
+

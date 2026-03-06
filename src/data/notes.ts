@@ -1,3 +1,4 @@
+﻿/** 文件说明：便签数据访问层，统一转发到桌面 API。 */
 import type { CreateNoteInput, Note, UpdateNoteInput } from '../types/note';
 import {
   createNote as createNoteRecord,
@@ -24,3 +25,4 @@ export async function updateNote(
 export async function deleteNote(id: string): Promise<boolean> {
   return deleteNoteRecord(id);
 }
+

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿/** 文件说明：未来任务数据 Hook，封装任务加载、增删改与状态切换。 */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createFutureTask,
   deleteFutureTask,
@@ -14,6 +15,7 @@ import type {
 
 type UseFutureTasksResult = {
   futureTasks: FutureTask[];
+  reloadFutureTasks: () => Promise<void>;
   addFutureTask: (input: CreateFutureTaskInput) => Promise<FutureTask>;
   removeFutureTask: (id: string) => Promise<boolean>;
   toggleFutureTaskCompleted: (
@@ -41,24 +43,32 @@ function sortFutureTasks(tasks: FutureTask[]): FutureTask[] {
 
 export function useFutureTasks(): UseFutureTasksResult {
   const [futureTasks, setFutureTasks] = useState<FutureTask[]>([]);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    let active = true;
-
-    void loadFutureTasks()
-      .then((items) => {
-        if (active) {
-          setFutureTasks(items);
-        }
-      })
-      .catch((error) => {
-        console.error('StickyDesk: failed to load future tasks.', error);
-      });
+    // StrictMode replays effects in development; always reset to mounted here.
+    isMountedRef.current = true;
 
     return () => {
-      active = false;
+      isMountedRef.current = false;
     };
   }, []);
+
+  const reloadFutureTasks = useCallback(async () => {
+    try {
+      const items = await loadFutureTasks();
+
+      if (isMountedRef.current) {
+        setFutureTasks(items);
+      }
+    } catch (error) {
+      console.error('StickyDesk: failed to load future tasks.', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    void reloadFutureTasks();
+  }, [reloadFutureTasks]);
 
   const sortedFutureTasks = useMemo(
     () => sortFutureTasks(futureTasks),
@@ -123,9 +133,11 @@ export function useFutureTasks(): UseFutureTasksResult {
 
   return {
     futureTasks: sortedFutureTasks,
+    reloadFutureTasks,
     addFutureTask,
     removeFutureTask,
     toggleFutureTaskCompleted,
     editFutureTask,
   };
 }
+

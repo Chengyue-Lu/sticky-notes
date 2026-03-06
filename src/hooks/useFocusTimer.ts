@@ -1,3 +1,4 @@
+﻿/** 文件说明：专注计时器 Hook，管理提醒会话与计时流程。 */
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const TIMER_TICK_MS = 1_000;
@@ -133,3 +134,4 @@ export function useFocusTimer(): UseFocusTimerResult {
     dismissTimer,
   };
 }
+

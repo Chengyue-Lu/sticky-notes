@@ -1,3 +1,4 @@
+﻿/** 文件说明：应用根组件，负责解析窗口类型并挂载页面。 */
 import NotesBoard from './pages/NotesBoard';
 
 type DetachedModuleKind = 'notes' | 'tasks';
@@ -27,3 +28,4 @@ function App() {
 }
 
 export default App;
+

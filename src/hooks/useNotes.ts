@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+﻿/** 文件说明：便签数据 Hook，封装便签加载、筛选、增删改与刷新。 */
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createNote,
   deleteNote,
@@ -18,6 +19,7 @@ type UseNotesResult = {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   isFiltering: boolean;
+  reloadNotes: () => Promise<void>;
   addNote: (input: CreateNoteInput) => Promise<Note>;
   editNote: (id: string, input: UpdateNoteInput) => Promise<Note | null>;
   removeNote: (id: string) => Promise<boolean>;
@@ -29,25 +31,32 @@ export function useNotes(
 ): UseNotesResult {
   const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    // Guard against setting state after unmount while the async notes loader resolves.
-    let active = true;
-
-    void loadNotes()
-      .then((items) => {
-        if (active) {
-          setNotes(items);
-        }
-      })
-      .catch((error) => {
-        console.error('StickyDesk: failed to load notes.', error);
-      });
+    // StrictMode replays effects in development; always reset to mounted here.
+    isMountedRef.current = true;
 
     return () => {
-      active = false;
+      isMountedRef.current = false;
     };
   }, []);
+
+  const reloadNotes = useCallback(async () => {
+    try {
+      const items = await loadNotes();
+
+      if (isMountedRef.current) {
+        setNotes(items);
+      }
+    } catch (error) {
+      console.error('StickyDesk: failed to load notes.', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    void reloadNotes();
+  }, [reloadNotes]);
 
   // Keep the hook return value fully derived so the page component stays focused on layout only.
   const visibleNotes = sortNotes(
@@ -100,8 +109,10 @@ export function useNotes(
     searchQuery,
     setSearchQuery,
     isFiltering,
+    reloadNotes,
     addNote,
     editNote,
     removeNote,
   };
 }
+

@@ -1,3 +1,4 @@
+﻿/** 文件说明：主看板页面编排层，组合 Notes/Tasks 视图与窗口交互。 */
 import { useEffect, useRef, useState } from 'react';
 import FutureTasksPanel from '../components/notes/FutureTasksPanel';
 import FutureTaskComposer from '../components/notes/FutureTaskComposer';
@@ -16,150 +17,34 @@ import { useFutureTasks } from '../hooks/useFutureTasks';
 import { useNotes } from '../hooks/useNotes';
 import {
   closeDetachedModuleWindow,
-  isCursorInsideWindow,
+  closeWindow,
   isDetachedModuleWindowOpen,
   openDetachedModuleWindow,
   setMainWindowLayoutCompact,
   setWindowAlwaysOnTopLocal,
   triggerFocusReminder,
 } from '../lib/desktopApi';
+import {
+  DEFAULT_NOTES_SORT_DIRECTION,
+  DEFAULT_NOTES_SORT_FIELD,
+  readDetachedBootPreferences,
+  resolveDetachedWindowPreferencesOnMount,
+  resolveDetachedModulePreferences,
+  saveDetachedModulePreferences,
+  toErrorMessage,
+  type DetachedModuleKind,
+} from './notesBoard/helpers';
+import { useDetachedWindowsStateSync } from './notesBoard/useDetachedWindowsStateSync';
+import { usePointerInsideShell } from './notesBoard/usePointerInsideShell';
 import type { CreateNoteInput } from '../types/note';
 import type { AppSettings, ThemeId } from '../types/settings';
-
-type DetachedModuleKind = 'notes' | 'tasks';
 
 type NotesBoardProps = {
   detachedModule: DetachedModuleKind | null;
 };
 
-type DetachedModulePreferences = {
-  themeId: ThemeId;
-  alwaysOnTop: boolean;
-};
-
-type DetachedPreferencesStorage = Partial<
-  Record<DetachedModuleKind, DetachedModulePreferences>
->;
-
-const DETACHED_PREFERENCES_STORAGE_KEY = 'stickydesk.detached.preferences.v1';
-const DEFAULT_NOTES_SORT_FIELD = 'createdAt';
-const DEFAULT_NOTES_SORT_DIRECTION = 'desc';
-
-function normalizeThemeId(value: unknown): ThemeId | null {
-  if (
-    value === 'white' ||
-    value === 'yellow' ||
-    value === 'blue' ||
-    value === 'green' ||
-    value === 'purple'
-  ) {
-    return value;
-  }
-
-  return null;
-}
-
-function readWindowSearchParams(): URLSearchParams {
-  if (typeof window === 'undefined') {
-    return new URLSearchParams();
-  }
-
-  return new URLSearchParams(window.location.search);
-}
-
-function readDetachedBootPreferences(
-  moduleKind: DetachedModuleKind | null,
-): DetachedModulePreferences | null {
-  if (!moduleKind) {
-    return null;
-  }
-
-  const params = readWindowSearchParams();
-  const queryTheme = normalizeThemeId(params.get('theme'));
-  const queryAlwaysOnTop = params.get('alwaysOnTop');
-
-  return {
-    themeId: queryTheme ?? 'white',
-    alwaysOnTop: queryAlwaysOnTop === '1' || queryAlwaysOnTop === 'true',
-  };
-}
-
-function readDetachedPreferencesStorage(): DetachedPreferencesStorage {
-  if (typeof window === 'undefined') {
-    return {};
-  }
-
-  const rawValue = window.localStorage.getItem(DETACHED_PREFERENCES_STORAGE_KEY);
-
-  if (!rawValue) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue) as DetachedPreferencesStorage;
-    return parsed ?? {};
-  } catch {
-    return {};
-  }
-}
-
-function saveDetachedModulePreferences(
-  moduleKind: DetachedModuleKind,
-  preferences: DetachedModulePreferences,
-) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const currentStorage = readDetachedPreferencesStorage();
-  const nextStorage: DetachedPreferencesStorage = {
-    ...currentStorage,
-    [moduleKind]: preferences,
-  };
-
-  window.localStorage.setItem(
-    DETACHED_PREFERENCES_STORAGE_KEY,
-    JSON.stringify(nextStorage),
-  );
-}
-
-function resolveDetachedModulePreferences(
-  moduleKind: DetachedModuleKind,
-  appSettings: AppSettings,
-): DetachedModulePreferences {
-  const storage = readDetachedPreferencesStorage();
-  const stored = storage[moduleKind];
-
-  if (stored) {
-    return {
-      themeId: normalizeThemeId(stored.themeId) ?? appSettings.themeId,
-      alwaysOnTop: Boolean(stored.alwaysOnTop),
-    };
-  }
-
-  return {
-    themeId: appSettings.themeId,
-    alwaysOnTop: appSettings.alwaysOnTop,
-  };
-}
-
-function toErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  const errorText = String(error).trim();
-
-  if (errorText && errorText !== '[object Object]') {
-    return errorText;
-  }
-
-  return fallback;
-}
-
 function NotesBoard({ detachedModule }: NotesBoardProps) {
   const isMainWindow = detachedModule === null;
-  const [isPointerInsideShell, setIsPointerInsideShell] = useState(true);
   const [openComposer, setOpenComposer] = useState<'note' | 'future' | null>(
     null,
   );
@@ -192,8 +77,10 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
     updateAlwaysOnTop,
     updateAutoFadeWhenInactive,
   } = useAppSettings();
+  const isPointerInsideShell = usePointerInsideShell(settings.autoFadeWhenInactive);
   const {
     futureTasks,
+    reloadFutureTasks,
     addFutureTask,
     removeFutureTask,
     toggleFutureTaskCompleted,
@@ -214,6 +101,7 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
     searchQuery,
     setSearchQuery,
     isFiltering,
+    reloadNotes,
     addNote,
     editNote,
     removeNote,
@@ -226,6 +114,18 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
   const shouldShowSearchToolbar = showNotesPanel;
   const isMainCompactLayout =
     isMainWindow && !showNotesPanel && !showTasksPanel;
+  const notesPanelIsDetached = detachedModule === 'notes';
+  const tasksPanelIsDetached = detachedModule === 'tasks';
+
+  useDetachedWindowsStateSync({
+    isMainWindow,
+    isNotesDetached,
+    isTasksDetached,
+    setIsNotesDetached,
+    setIsTasksDetached,
+    reloadNotes,
+    reloadFutureTasks,
+  });
 
   useEffect(() => {
     let isCancelled = false;
@@ -248,43 +148,6 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
       }
     };
   }, []);
-
-  useEffect(() => {
-    let isDisposed = false;
-    let pollTimerId = 0;
-
-    if (!settings.autoFadeWhenInactive) {
-      setIsPointerInsideShell(true);
-      return () => {};
-    }
-
-    const syncPointerState = async () => {
-      try {
-        const nextIsInside = await isCursorInsideWindow();
-
-        if (!isDisposed) {
-          setIsPointerInsideShell(nextIsInside);
-        }
-      } catch {
-        if (!isDisposed) {
-          setIsPointerInsideShell(true);
-        }
-      }
-    };
-
-    void syncPointerState();
-    pollTimerId = window.setInterval(() => {
-      void syncPointerState();
-    }, 160);
-
-    return () => {
-      isDisposed = true;
-
-      if (pollTimerId) {
-        window.clearInterval(pollTimerId);
-      }
-    };
-  }, [settings.autoFadeWhenInactive]);
 
   useEffect(() => {
     const reminderTitle =
@@ -329,20 +192,13 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
       return;
     }
 
-    const bootPreferences = readDetachedBootPreferences(detachedModule);
-    const storedPreferences = readDetachedPreferencesStorage()[detachedModule];
+    const { themeId, alwaysOnTop } = resolveDetachedWindowPreferencesOnMount(
+      detachedModule,
+      settings,
+    );
 
-    const resolvedThemeId =
-      normalizeThemeId(storedPreferences?.themeId) ??
-      normalizeThemeId(bootPreferences?.themeId) ??
-      settings.themeId;
-    const resolvedAlwaysOnTop =
-      typeof storedPreferences?.alwaysOnTop === 'boolean'
-        ? storedPreferences.alwaysOnTop
-        : bootPreferences?.alwaysOnTop ?? settings.alwaysOnTop;
-
-    setDetachedThemeId(resolvedThemeId);
-    setDetachedAlwaysOnTop(resolvedAlwaysOnTop);
+    setDetachedThemeId(themeId);
+    setDetachedAlwaysOnTop(alwaysOnTop);
   }, [detachedModule, isMainWindow, settings.alwaysOnTop, settings.themeId]);
 
   useEffect(() => {
@@ -351,7 +207,7 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
     }
 
     document.documentElement.dataset.theme = detachedThemeId;
-  }, [detachedThemeId, isMainWindow, settings]);
+  }, [detachedThemeId, isMainWindow]);
 
   useEffect(() => {
     if (isMainWindow || !detachedModule) {
@@ -375,40 +231,6 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
       alwaysOnTop: detachedAlwaysOnTop,
     });
   }, [detachedAlwaysOnTop, detachedModule, detachedThemeId, isMainWindow]);
-
-  useEffect(() => {
-    if (!isMainWindow) {
-      return;
-    }
-
-    let isDisposed = false;
-
-    const syncDetachedWindows = async () => {
-      try {
-        const [notesOpen, tasksOpen] = await Promise.all([
-          isDetachedModuleWindowOpen('notes'),
-          isDetachedModuleWindowOpen('tasks'),
-        ]);
-
-        if (!isDisposed) {
-          setIsNotesDetached(notesOpen);
-          setIsTasksDetached(tasksOpen);
-        }
-      } catch {
-        // Ignore polling errors and keep current state.
-      }
-    };
-
-    void syncDetachedWindows();
-    const timerId = window.setInterval(() => {
-      void syncDetachedWindows();
-    }, 900);
-
-    return () => {
-      isDisposed = true;
-      window.clearInterval(timerId);
-    };
-  }, [isMainWindow]);
 
   useEffect(() => {
     if (!isMainWindow) {
@@ -456,6 +278,16 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
     setExpandedNoteId((currentValue) => (currentValue === id ? null : id));
   }
 
+  async function attachDetachedModule(moduleKind: DetachedModuleKind) {
+    await closeDetachedModuleWindow(moduleKind);
+
+    if (moduleKind === 'notes') {
+      setIsNotesDetached(false);
+    } else {
+      setIsTasksDetached(false);
+    }
+  }
+
   async function toggleDetachedModule(moduleKind: DetachedModuleKind) {
     if (detachToggleLockRef.current[moduleKind]) {
       return;
@@ -466,13 +298,7 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
 
     try {
       if (isDetached) {
-        await closeDetachedModuleWindow(moduleKind);
-
-        if (moduleKind === 'notes') {
-          setIsNotesDetached(false);
-        } else {
-          setIsTasksDetached(false);
-        }
+        await attachDetachedModule(moduleKind);
       } else {
         const detachedPreferences = resolveDetachedModulePreferences(
           moduleKind,
@@ -480,8 +306,6 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
         );
         await openDetachedModuleWindow(moduleKind, {
           themeId: detachedPreferences.themeId,
-          shellOpacity: settings.shellOpacity,
-          autoFadeWhenInactive: settings.autoFadeWhenInactive,
           alwaysOnTop: detachedPreferences.alwaysOnTop,
         });
 
@@ -498,15 +322,17 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
       );
       window.alert(message);
     } finally {
-      try {
-        const [notesOpen, tasksOpen] = await Promise.all([
-          isDetachedModuleWindowOpen('notes'),
-          isDetachedModuleWindowOpen('tasks'),
-        ]);
-        setIsNotesDetached(notesOpen);
-        setIsTasksDetached(tasksOpen);
-      } catch {
-        // Keep current flags if state sync fails.
+      const [notesResult, tasksResult] = await Promise.allSettled([
+        isDetachedModuleWindowOpen('notes'),
+        isDetachedModuleWindowOpen('tasks'),
+      ]);
+
+      if (notesResult.status === 'fulfilled') {
+        setIsNotesDetached(notesResult.value);
+      }
+
+      if (tasksResult.status === 'fulfilled') {
+        setIsTasksDetached(tasksResult.value);
       }
 
       detachToggleLockRef.current[moduleKind] = false;
@@ -521,58 +347,65 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
     detachToggleLockRef.current.notes = true;
     detachToggleLockRef.current.tasks = true;
 
-    const [notesOpen, tasksOpen] = await Promise.all([
+    const [notesResult, tasksResult] = await Promise.allSettled([
       isDetachedModuleWindowOpen('notes'),
       isDetachedModuleWindowOpen('tasks'),
     ]);
-    const shouldAttachBoth = notesOpen && tasksOpen;
+    let nextNotesDetached =
+      notesResult.status === 'fulfilled' ? notesResult.value : isNotesDetached;
+    let nextTasksDetached =
+      tasksResult.status === 'fulfilled' ? tasksResult.value : isTasksDetached;
+    const shouldAttachBoth = nextNotesDetached && nextTasksDetached;
 
     try {
       if (shouldAttachBoth) {
-        await Promise.all([
-          closeDetachedModuleWindow('notes'),
-          closeDetachedModuleWindow('tasks'),
-        ]);
-        setIsNotesDetached(false);
-        setIsTasksDetached(false);
-        return;
-      }
+        if (nextNotesDetached) {
+          await closeDetachedModuleWindow('notes');
+          nextNotesDetached = false;
+        }
 
-      if (!notesOpen) {
-        const notesPreferences = resolveDetachedModulePreferences('notes', settings);
-        await openDetachedModuleWindow('notes', {
-          themeId: notesPreferences.themeId,
-          shellOpacity: settings.shellOpacity,
-          autoFadeWhenInactive: settings.autoFadeWhenInactive,
-          alwaysOnTop: notesPreferences.alwaysOnTop,
-        });
-      }
+        if (nextTasksDetached) {
+          await closeDetachedModuleWindow('tasks');
+          nextTasksDetached = false;
+        }
+      } else {
+        if (!nextNotesDetached) {
+          const notesPreferences = resolveDetachedModulePreferences('notes', settings);
+          await openDetachedModuleWindow('notes', {
+            themeId: notesPreferences.themeId,
+            alwaysOnTop: notesPreferences.alwaysOnTop,
+          });
+          nextNotesDetached = true;
+        }
 
-      if (!tasksOpen) {
-        const tasksPreferences = resolveDetachedModulePreferences('tasks', settings);
-        await openDetachedModuleWindow('tasks', {
-          themeId: tasksPreferences.themeId,
-          shellOpacity: settings.shellOpacity,
-          autoFadeWhenInactive: settings.autoFadeWhenInactive,
-          alwaysOnTop: tasksPreferences.alwaysOnTop,
-        });
+        if (!nextTasksDetached) {
+          const tasksPreferences = resolveDetachedModulePreferences('tasks', settings);
+          await openDetachedModuleWindow('tasks', {
+            themeId: tasksPreferences.themeId,
+            alwaysOnTop: tasksPreferences.alwaysOnTop,
+          });
+          nextTasksDetached = true;
+        }
       }
-
-      setIsNotesDetached(true);
-      setIsTasksDetached(true);
     } catch (error) {
       const message = toErrorMessage(error, 'Failed to toggle both modules.');
       window.alert(message);
     } finally {
-      try {
-        const [nextNotesOpen, nextTasksOpen] = await Promise.all([
-          isDetachedModuleWindowOpen('notes'),
-          isDetachedModuleWindowOpen('tasks'),
-        ]);
-        setIsNotesDetached(nextNotesOpen);
-        setIsTasksDetached(nextTasksOpen);
-      } catch {
-        // Keep current flags if state sync fails.
+      const [finalNotesResult, finalTasksResult] = await Promise.allSettled([
+        isDetachedModuleWindowOpen('notes'),
+        isDetachedModuleWindowOpen('tasks'),
+      ]);
+
+      if (finalNotesResult.status === 'fulfilled') {
+        setIsNotesDetached(finalNotesResult.value);
+      } else {
+        setIsNotesDetached(nextNotesDetached);
+      }
+
+      if (finalTasksResult.status === 'fulfilled') {
+        setIsTasksDetached(finalTasksResult.value);
+      } else {
+        setIsTasksDetached(nextTasksDetached);
       }
 
       detachToggleLockRef.current.notes = false;
@@ -768,6 +601,38 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
                       <button
                         type="button"
                         className={
+                          notesPanelIsDetached
+                            ? 'future-task-create-button future-task-create-button-active future-task-create-button-combine'
+                            : 'future-task-create-button'
+                        }
+                        aria-label={
+                          notesPanelIsDetached
+                            ? 'Combine notes module'
+                            : 'Split notes module'
+                        }
+                        onClick={() => {
+                          if (isMainWindow) {
+                            void toggleDetachedModule('notes');
+                            return;
+                          }
+
+                          void closeWindow().catch((error) => {
+                            window.alert(
+                              toErrorMessage(
+                                error,
+                                'Failed to combine notes module.',
+                              ),
+                            );
+                          });
+                        }}
+                      >
+                        <span className="future-task-create-glyph" aria-hidden="true">
+                          {notesPanelIsDetached ? 'C' : 'S'}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className={
                           openComposer === 'note'
                             ? 'future-task-create-button future-task-create-button-active'
                             : 'future-task-create-button'
@@ -833,6 +698,19 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
               {showTasksPanel ? (
                 <FutureTasksPanel
                   tasks={futureTasks}
+                  isDetached={tasksPanelIsDetached}
+                  onToggleDetached={() => {
+                    if (isMainWindow) {
+                      void toggleDetachedModule('tasks');
+                      return;
+                    }
+
+                    void closeWindow().catch((error) => {
+                      window.alert(
+                        toErrorMessage(error, 'Failed to combine tasks module.'),
+                      );
+                    });
+                  }}
                   isComposerOpen={openComposer === 'future'}
                   onToggleComposer={() => {
                     setOpenComposer((currentValue) =>
@@ -862,3 +740,4 @@ function NotesBoard({ detachedModule }: NotesBoardProps) {
 }
 
 export default NotesBoard;
+

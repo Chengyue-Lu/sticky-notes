@@ -1,3 +1,4 @@
+﻿/** 文件说明：前端到 Tauri 的桌面能力封装层（invoke 与窗口 API 封装）。 */
 import { invoke } from '@tauri-apps/api/core';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { PhysicalPosition } from '@tauri-apps/api/dpi';
@@ -16,8 +17,6 @@ import type {
 import type { CreateNoteInput, Note, UpdateNoteInput } from '../types/note';
 import type {
   AppSettings,
-  NoteSortDirection,
-  NoteSortField,
   ThemeId,
 } from '../types/settings';
 
@@ -35,8 +34,6 @@ export type DetachedModuleKind = 'notes' | 'tasks';
 
 export type OpenDetachedModuleWindowOptions = {
   themeId: ThemeId;
-  shellOpacity: number;
-  autoFadeWhenInactive: boolean;
   alwaysOnTop: boolean;
 };
 
@@ -223,11 +220,6 @@ export async function openDetachedModuleWindow(
   url.searchParams.set('windowKind', 'module');
   url.searchParams.set('module', moduleKind);
   url.searchParams.set('theme', options.themeId);
-  url.searchParams.set(
-    'autoFade',
-    options.autoFadeWhenInactive ? '1' : '0',
-  );
-  url.searchParams.set('shellOpacity', String(options.shellOpacity));
   url.searchParams.set('alwaysOnTop', options.alwaysOnTop ? '1' : '0');
   const childWindow = new WebviewWindow(targetLabel, {
     title: moduleKind === 'notes' ? 'StickyDesk Notes' : 'StickyDesk Tasks',
@@ -392,16 +384,6 @@ export async function setAutoFadeWhenInactive(
   });
 }
 
-export async function setNoteSort(
-  field: NoteSortField,
-  direction: NoteSortDirection,
-): Promise<AppSettings> {
-  return invokeCommand<AppSettings>('set_note_sort', {
-    field,
-    direction,
-  });
-}
-
 export async function listNotes(): Promise<Note[]> {
   return invokeCommand<Note[]>('list_notes');
 }
@@ -465,3 +447,4 @@ export async function setFutureTaskCompleted(
     input,
   });
 }
+

@@ -1,3 +1,4 @@
+﻿/** 文件说明：活跃时长统计 Hook，管理今日/总计活跃时间数据。 */
 import { useEffect, useState } from 'react';
 import { getIdleSeconds, supportsIdleTracking } from '../lib/desktopApi';
 
@@ -251,3 +252,4 @@ export function useActiveTime(): UseActiveTimeResult {
     resetTotalActiveSeconds,
   };
 }
+

@@ -67,12 +67,6 @@ function NotesFloatingStats({
     };
   }, [isCancelConfirming]);
 
-  useEffect(() => {
-    if (!focusSession) {
-      setIsCancelConfirming(false);
-    }
-  }, [focusSession]);
-
   function handleToggleTimerPanel() {
     if (focusSession) {
       return;
